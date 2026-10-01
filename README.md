@@ -1,8 +1,8 @@
-# sap-b1-marketplace
+# b1-skills
 
 Marketplace de plugins de Claude Code para trabajar con SAP Business One (por ahora Service Layer).
 
-Este repo es solo el producto instalable. La fabrica (fuentes, scripts, skills de construccion, evidencias) vive en el repo exterior, que incluye este como submodulo en `marketplace/`.
+Este repo es solo el producto instalable. La fabrica (fuentes, scripts, skills de construccion, evidencias) vive en el repo exterior, que incluye este como submodulo en `b1-skills/`.
 
 ## Plugins
 
@@ -12,5 +12,5 @@ Este repo es solo el producto instalable. La fabrica (fuentes, scripts, skills d
 
 ## Instalacion
 
-    /plugin marketplace add <owner>/sap-b1-marketplace
-    /plugin install use-service-layer@sap-b1-marketplace
+    /plugin marketplace add <owner>/b1-skills
+    /plugin install use-service-layer@b1-skills

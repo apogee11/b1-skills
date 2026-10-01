@@ -1,5 +1,5 @@
 {
-  "name": "sap-b1-marketplace",
+  "name": "b1-skills",
   "owner": { "name": "apogee11" },
   "metadata": {
     "description": "Plugins para que la IA trabaje con SAP Business One (por ahora Service Layer)."
