@@ -17,7 +17,7 @@ Requisitos: Node 20 o superior. El plugin guarda sus datos locales en `.b1-skill
 
 ## Instalacion
 
-    /plugin marketplace add <owner>/b1-skills
+    /plugin marketplace add apogee11/b1-skills
     /plugin install service-layer@b1-skills
 
 Despues, pide a Claude que configure Service Layer (skill `setup`).
