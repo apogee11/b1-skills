@@ -1,0 +1,17 @@
+# Appendix
+
+## [Default Ports for Server Components](default-ports.md)
+Use when: finding the default port of a server component; which ports to keep free; which ports must be exposed to the Internet.
+Terms: `30000`, `30001`, `40000`, `40002`, `40004`, `40005`, `40006`, `40008`, `40020`, `50000`, `50001`, `60000`, `60010`, `60020`, `443`, `8080`, `8443`, `8100`, `7299`, `7297`, CORBA license server, Server Tools, Extension Manager, Authentication Service, Workflow, reverse proxy, Integration Framework, Browser Access, Web Client, Webhook Messenger, API Gateway Service, exposed to the Internet
+Not here: changing the Integration Framework server ports (sec 9.7.6) → [changing-server-ports](../integration-framework-post-install/changing-server-ports.md); port prompts during installation → [server-components-installation](../installing-server-components/server-components-installation.md)
+
+## [Log File Locations for SAP Business One Components](log-file-locations.md)
+Use when: finding the installation or runtime log of a server tool, server component, add-on, client component or integration component.
+Terms: `B1WinInstaller_xxxxxx.txt`, `%programdata%\sap\SAP Business One\Log\`, `%LOCALAPPDATA%\SAP\SAP Business One\Log\SLDAgent`, `C:\Windows\SAP Business One Server.log`, installation log path, runtime log path, Remote Support Platform, `b1servertools-stdout.yyyy-mm-dd.log`
+Sections: [Server Tools](log-file-locations.md#server-tools) · [Server Components](log-file-locations.md#server-components) · [Add-ons](log-file-locations.md#add-ons) · [Client Components](log-file-locations.md#client-components) · [Integration Solution](log-file-locations.md#integration-solution) · [Others](log-file-locations.md#others)
+Not here: security event logs and Keycloak events → [security-relevant-logging-and-tracing](../data-protection-logging-and-recommendations/security-relevant-logging-and-tracing.md); Service Layer Apache logs → [troubleshooting](../troubleshooting-and-support/troubleshooting.md#troubleshooting-service-layer-connection-problems); SLD audit logs → [audit-logs](../system-landscape-directory/audit-logs.md)
+
+## [Security Certificate Usage for SAP Business One Components](security-certificate-usage.md)
+Use when: finding whether a service uses the shared Server Tools certificate or a dedicated one; how to renew the certificate of a service; starting the Components Wizard for reconfiguration.
+Terms: shared (Server Tools) certificate, dedicated certificate, certificate renewal, `B1ServerTools64`, `B1ServerToolsAuthentication`, `B1ServerTools64License`, `Gatekeeper64`, `Tomcat10`, `b1s50000`, `WebClient`, `WebhookMessengers`, `SAPB1EDFBackend`, `SAPB1EFMTService`, `b1gatewaysvc`, SAP Note 3743471, SAP Business One Components Wizard, `setup.exe`, `C:\Program Files\SAP\SAP Business One SetupFiles`, 10.0 SP 2605
+Not here: certificate expiry warnings in the SLD → [certificate-expiry-warnings](../system-landscape-directory/certificate-expiry-warnings.md); certificate verification (sec 12.4.3) → [security-certificate-verification](../network-storage-and-keys-security/security-certificate-verification.md); the reconfiguration procedure (sec 9.8) → [reconfiguring-components](../reconfiguring-the-system/reconfiguring-components.md); Browser Access reconfiguration → [reconfiguring-browser-access-service](../reconfiguring-the-system/reconfiguring-browser-access-service.md)
