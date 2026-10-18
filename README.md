@@ -10,7 +10,7 @@ Needs Node 20 or later. There are two ways in. Pick **one**: installing both lea
 
 | | Claude Code plugin | `npx skills` |
 |---|---|---|
-| Command names | with prefix: `/b1-skills:service-layer` | no prefix: `/service-layer` |
+| Command names | with prefix: `/b1-skills:b1-skills-service-layer` | no prefix: `/b1-skills-service-layer` |
 | Updates | managed by Claude Code | when you run `npx skills update` |
 | Files | read-only, kept by Claude Code | copied into your repo, yours to edit |
 | Agents | Claude Code | Claude Code and others (only Claude Code is tested) |
@@ -28,7 +28,7 @@ Inside Claude Code, in your project:
 
 Use the full URL. The short form `apogee11/b1-skills` makes Claude Code clone over SSH, and it fails with `Host key verification failed` if you have no SSH key set up for GitHub.
 
-Check it: typing `/apogee11` must list `b1-skills:service-layer`, `b1-skills:service-layer-setup` and `b1-skills:service-layer-add-environment`. If it does not, run `/reload-plugins` or start a new session.
+Check it: typing `/apogee11` must list `b1-skills:b1-skills-admin-guide-sql`, `b1-skills:b1-skills-service-layer`, `b1-skills:b1-skills-service-layer-setup` and `b1-skills:b1-skills-service-layer-add-environment`. If it does not, run `/reload-plugins` or start a new session.
 
 ### 1b. With `npx skills` (no prefix)
 
@@ -38,24 +38,24 @@ In the root of your project:
 npx skills@latest add apogee11/b1-skills
 ```
 
-Pick the agents and take **all three** skills: `service-layer` (the one you use day to day), `service-layer-setup` and `service-layer-add-environment`. Each skill carries its own `scripts/` folder, so none depends on the others being there. Update later with `npx skills update`.
+Pick the agents and take **all four** skills (the last, `b1-skills-admin-guide-sql`, is independent of Service Layer): `b1-skills-service-layer` (the one you use day to day), `b1-skills-service-layer-setup` and `b1-skills-service-layer-add-environment` (and `b1-skills-admin-guide-sql`). Each skill carries its own `scripts/` folder, so none depends on the others being there. Update later with `npx skills update`.
 
-Check it: `.claude/skills/` must hold the three folders, and `.claude/skills/service-layer/docs/reference/` must have the whole reference (about 170 files). If the installer printed an error, run the same command again and check that folder.
+Check it: `.claude/skills/` must hold the four folders, and `.claude/skills/b1-skills-service-layer/docs/reference/` must have the whole reference (about 170 files). If the installer printed an error, run the same command again and check that folder.
 
 ### 2. Run the Setup
 
-Open Claude Code **at the root of your repo** (not inside `.claude`) and run `/service-layer-setup`, with the prefix `/b1-skills:service-layer-setup` if you installed the plugin, or say *"set up Service Layer"*. It is a conversation, one question at a time:
+Open Claude Code **at the root of your repo** (not inside `.claude`) and run `/b1-skills-service-layer-setup`, with the prefix `/b1-skills:b1-skills-service-layer-setup` if you installed the plugin, or say *"set up Service Layer"*. It is a conversation, one question at a time:
 
 1. Claude asks for the language (English or Spanish), the SAP Business One version, the OData version (`v1` is OData V3, `v2` is OData V4; it proposes `v2` from FP 2405) and which environments you want (`dev`, `uat`, `prod`; at least one).
 2. Claude creates `.b1-skills/service-layer/` with the configuration and one `credentials.json` per environment, with example values. It also adds `.b1-skills/` to your `.gitignore`.
 3. **You** open each `credentials.json` in your editor and replace the example values with the Service Layer URL, the company database, your user and your password, then save. Tell Claude when you are done. Claude never asks for these and never opens the file.
 4. Claude tests every login and builds an index of the entities each environment exposes. If a login fails, it tells you the Service Layer error; fix the file and ask it to verify again.
 
-Run the Setup again at any time to start from scratch. To add one more environment without losing the rest, run `/service-layer-add-environment`.
+Run the Setup again at any time to start from scratch. To add one more environment without losing the rest, run `/b1-skills-service-layer-add-environment`.
 
 ### 3. Bam - you're ready to go.
 
-Just talk to Claude, or run `/service-layer` (`/b1-skills:service-layer` with the plugin) followed by your question. That one skill both answers questions from the reference and works against your system; you never choose between the two.
+Just talk to Claude, or run `/b1-skills-service-layer` (`/b1-skills:b1-skills-service-layer` with the plugin) followed by your question. That one skill both answers questions from the reference and works against your system; you never choose between the two.
 
 ## Why These Skills Exist
 
@@ -65,7 +65,7 @@ I built these to fix the common failure modes of an agent talking to a live Serv
 
 **The Problem**: To log in, the agent needs a URL, a company, a user and a password. The easy path is to paste them into the chat. From then on they live in the conversation, in logs, and in whatever the model provider keeps.
 
-**The Fix** is the **`service-layer-setup` skill**: Claude asks only what is not secret (versions, environments, URL, company) and you type the user and the password yourself into a file in your repo. The skill's rules forbid Claude to ask for them, to read that file or to repeat them if you paste one by mistake. The tool logs in by itself, so `Login` and `Logout` are not even requestable.
+**The Fix** is the **`b1-skills-service-layer-setup` skill**: Claude asks only what is not secret (versions, environments, URL, company) and you type the user and the password yourself into a file in your repo. The skill's rules forbid Claude to ask for them, to read that file or to repeat them if you paste one by mistake. The tool logs in by itself, so `Login` and `Logout` are not even requestable.
 
 > [!NOTE]
 > The password stays in plain text in `.b1-skills/service-layer/<env>/credentials.json`, ignored by git. Anyone who can read your repo folder can read it. Keeping it out of the conversation relies on the skill's rules: nothing technical stops Claude's tools from opening that file.
@@ -74,7 +74,7 @@ I built these to fix the common failure modes of an agent talking to a live Serv
 
 **The Problem**: The agent invents `U_` fields that do not exist, misnames a custom table, or builds a body that the Service Layer rejects. User fields differ between companies and between `dev` and `prod`, so no model knows them.
 
-**The Fix** is the **`service-layer` skill** (its Uso part), which gives the agent two maps built from *your* environment:
+**The Fix** is the **`b1-skills-service-layer` skill** (its Uso part), which gives the agent two maps built from *your* environment:
 
 - **Object context**: for an entity, its standard and user fields (`U_*`), types, whether they can be empty, and the valid values. Claude reads it before building a body or a `$select`.
 - **Entity index**: which entities the environment exposes, standard and user-defined. Claude tries the name it knows first, and reads the index only when it is not sure or the Service Layer says the entity does not exist.
@@ -97,7 +97,7 @@ On `prod`, every write also needs `--allow-prod`, added only after you approve t
 
 **The Problem**: Pagination, ETag and `If-Match`, `$batch` change sets, UDOs, webhooks: the answers are in a 600-page guide, and the model half-remembers a different version.
 
-**The Fix** is the **`service-layer` skill** (its Documentación part): the Service Layer reference (guide v1.29), plus an OData protocol section and facts verified against a live Service Layer. It reads the B1 version you declared in the Setup and checks which sections exist in your version before answering.
+**The Fix** is the **`b1-skills-service-layer` skill** (its Documentación part): the Service Layer reference (guide v1.29), plus an OData protocol section and facts verified against a live Service Layer. It reads the B1 version you declared in the Setup and checks which sections exist in your version before answering.
 
 ## Usage Examples
 
@@ -194,9 +194,11 @@ If you ask before running the Setup, the skill stops and asks you to run the Set
 
 ### Skills
 
-- **[service-layer-setup](./skills/service-layer-setup/SKILL.md)**: Configure the connection to Service Layer: B1 version, OData version and `dev`, `uat` and `prod`, with a login test. A conversation; you type the user and the password into a file yourself and Claude never handles them.
-- **[service-layer](./skills/service-layer/SKILL.md)**: The skill you use. Answers how Service Layer behaves from the reference (guide v1.29, all B1 versions, [docs/](./skills/service-layer/docs/index.md)) and operates against a configured environment ([use.md](./skills/service-layer/use.md)): read entities, read the object context of an entity, find which entities exist, and make any other call with `request`, with the dry-run-first write flow. Needs the Setup.
-- **[service-layer-add-environment](./skills/service-layer-add-environment/SKILL.md)**: Add another environment (`dev`, `uat` or `prod`) to an existing Setup without losing what is configured.
+- **[b1-skills-service-layer-setup](./skills/b1-skills-service-layer-setup/SKILL.md)**: Configure the connection to Service Layer: B1 version, OData version and `dev`, `uat` and `prod`, with a login test. A conversation; you type the user and the password into a file yourself and Claude never handles them.
+- **[b1-skills-service-layer](./skills/b1-skills-service-layer/SKILL.md)**: The skill you use. Answers how Service Layer behaves from the reference (guide v1.29, all B1 versions, [docs/](./skills/b1-skills-service-layer/docs/index.md)) and operates against a configured environment ([use.md](./skills/b1-skills-service-layer/use.md)): read entities, read the object context of an entity, find which entities exist, and make any other call with `request`, with the dry-run-first write flow. Needs the Setup.
+- **[b1-skills-service-layer-add-environment](./skills/b1-skills-service-layer-add-environment/SKILL.md)**: Add another environment (`dev`, `uat` or `prod`) to an existing Setup without losing what is configured.
+
+- **[b1-skills-admin-guide-sql](./skills/b1-skills-admin-guide-sql/SKILL.md)**: SAP Business One Administrator's Guide, edition for Microsoft SQL Server (10.0 up to FP 2608): installing, upgrading, configuring services, maintaining databases, security, troubleshooting and the appendix. Documentation only: no Setup, it does not connect to any system ([docs/](./skills/b1-skills-admin-guide-sql/docs/index.md)).
 
 ### Commands of the Uso
 
@@ -221,14 +223,14 @@ Reads are safe to allow so that Claude Code does not ask each time, for example 
 
 ```json
 { "permissions": { "allow": [
-  "Bash(node *service-layer/scripts/use.mjs get *)",
-  "Bash(node *service-layer/scripts/use.mjs page *)",
-  "Bash(node *service-layer/scripts/use.mjs traverse *)",
-  "Bash(node *service-layer/scripts/use.mjs count *)",
-  "Bash(node *service-layer/scripts/use.mjs request GET *)",
-  "Bash(node *service-layer/scripts/use.mjs context *)",
-  "Bash(node *service-layer/scripts/use.mjs clean *)",
-  "Bash(node *service-layer-setup/scripts/setup.mjs --status)"
+  "Bash(node *b1-skills-service-layer/scripts/use.mjs get *)",
+  "Bash(node *b1-skills-service-layer/scripts/use.mjs page *)",
+  "Bash(node *b1-skills-service-layer/scripts/use.mjs traverse *)",
+  "Bash(node *b1-skills-service-layer/scripts/use.mjs count *)",
+  "Bash(node *b1-skills-service-layer/scripts/use.mjs request GET *)",
+  "Bash(node *b1-skills-service-layer/scripts/use.mjs context *)",
+  "Bash(node *b1-skills-service-layer/scripts/use.mjs clean *)",
+  "Bash(node *b1-skills-service-layer-setup/scripts/setup.mjs --status)"
 ] } }
 ```
 
@@ -244,11 +246,11 @@ Do **not** allow `request` for other methods (nor `request POST ... --read`): th
 | `HEADER_RESERVED` | `Cookie`, `Host` and `Content-Length` belong to the tool. |
 | `FILE_TOO_LARGE`, `FILE_FORBIDDEN` | File over 50 MB, or one of the Setup's own files. |
 | `Property 'X' of 'Y' is invalid` | The object context may be out of date; ask for `context <Entity> --refresh`. |
-| `/service-layer` or `/b1-skills:...` is not listed | The skills are not loaded in this session. Plugin: `/reload-plugins` or a new session, and check `/plugin` shows `b1-skills` enabled. Open Claude Code at the root of the project, not inside `.claude`. |
-| `/service-layer` has no `b1-skills:` prefix | You installed with `npx skills`. The prefix only exists with the plugin (1a); uninstall the copied folders first so you do not have both. |
+| `/b1-skills-service-layer` or `/b1-skills:...` is not listed | The skills are not loaded in this session. Plugin: `/reload-plugins` or a new session, and check `/plugin` shows `b1-skills` enabled. Open Claude Code at the root of the project, not inside `.claude`. |
+| `/b1-skills-service-layer` has no `b1-skills:` prefix | You installed with `npx skills`. The prefix only exists with the plugin (1a); uninstall the copied folders first so you do not have both. |
 | `Host key verification failed` adding the marketplace | Use the full URL, `https://github.com/apogee11/b1-skills.git`, not `apogee11/b1-skills`. |
-| `Filename too long` or `ENOENT ... mkdir` while installing | Windows paths over 260 characters, or a one-off failure of the copy. Install from a project with a shorter path (`C:\work\project`), or enable long paths (`git config --global core.longpaths true` and Windows "Enable Win32 long paths"). With `npx skills`, run the command again and check that `.claude/skills/service-layer/docs/reference/` is complete. |
-| Installed both ways | Every skill shows twice. Keep one: delete the `service-layer*` folders in `.claude/skills/`, or run `/plugin uninstall b1-skills@b1-skills`. |
+| `Filename too long` or `ENOENT ... mkdir` while installing | Windows paths over 260 characters, or a one-off failure of the copy. Install from a project with a shorter path (`C:\work\project`), or enable long paths (`git config --global core.longpaths true` and Windows "Enable Win32 long paths"). With `npx skills`, run the command again and check that `.claude/skills/b1-skills-service-layer/docs/reference/` is complete. |
+| Installed both ways | Every skill shows twice. Keep one: delete the `b1-skills-*` folders in `.claude/skills/`, or run `/plugin uninstall b1-skills@b1-skills`. |
 | Any Service Layer error with a status | Reported literally: its code and message are the Service Layer's own. |
 
 ### Good to know

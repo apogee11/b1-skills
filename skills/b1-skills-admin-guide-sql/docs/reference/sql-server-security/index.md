@@ -1,0 +1,12 @@
+# SQL Server security
+
+## [Security Solutions for Microsoft SQL Server and Database Tips](sql-server-security.md)
+Use when: hardening Microsoft SQL Server for SAP Business One; upgrading SQL Server to the latest service pack and in which order; creating an alternative database admin user for the SLD; granting roles with Windows authentication; removing the guest user from `msdb`.
+Terms: SQL Server Security Center, SAP Note 928839, alternative admin user, SQL Server authentication, `sysadmin`, `public`, `db_datawriter`, `db_datareader`, `db_owner`, *Use Specified Database User*, *Edit Company*, Windows authentication, `msdb`, `Guest` user, two-tier application, SQL Server Management Studio
+Sections: [Upgrading SQL Server](sql-server-security.md#upgrading-microsoft-sql-server) · [Securing SQL Server](sql-server-security.md#securing-microsoft-sql-server) · [Alternative admin user](sql-server-security.md#setting-up-an-alternative-admin-user) · [Revoking guest access to msdb](sql-server-security.md#revoking-guest-access-to-the-msdb-database)
+Not here: SQL Server version requirements → [prerequisites](../introduction-and-prerequisites/prerequisites.md); upgrading SAP Business One before SQL Server → [upgrade-process](../upgrade-process/index.md); database audit, TDE and the `sa` password (sec 12.7) → [sa-account-password](../database-authentication/sa-account-password.md); restricting database access (sec 12.8.1) → [restricting-database-access](../sbo-authentication-and-application-security/restricting-database-access.md)
+
+## [Database Connection Security for SAP Crystal Reports](crystal-reports-database-connection-security.md)
+Use when: encrypting (TLS/SSL) the connection from SAP Crystal Reports for SAP Business One to SQL Server; importing the SQL Server root certificate on the workstation; adding `Encrypt=yes` to the ODBC (RDO) connection string.
+Terms: TLS, SSL, `caServer.pfx`, `mmc.exe`, Trusted Root Certification Authorities, *Standard Report Creation Wizard*, *Create New Connection*, ODBC(RDO), `Encrypt=yes`, `ODBC Driver 18 for SQL Server`
+Not here: installing Crystal Reports → [installing-crystal-reports](../crystal-reports-and-uninstalling/installing-crystal-reports.md); SSL for SAP Business One services (sec 12.4.4) → [ssl-encryption](../network-storage-and-keys-security/ssl-encryption.md); encrypting data in the database (TDE, sec 12.7.1) → [transparent-data-encryption](../database-authentication/transparent-data-encryption.md)
