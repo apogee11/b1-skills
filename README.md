@@ -1,208 +1,102 @@
-# Service Layer Skills For SAP Business One
+<div align="center">
 
-A Claude Code plugin to work with a real SAP Business One Service Layer: read data, change it safely and look up how the Service Layer behaves, without ever handing your user and password to the AI.
+  # sbo-skills
 
-Working against a live ERP is hard. Pasting passwords into a chat, letting an agent guess entity names, or having it fire a `POST` at production on its own are all ways to have a very bad day. These skills are designed to be small, explicit and safe by default: every write is shown to you before it is sent.
+  **Skills that let AI agents work with SAP Business One: Service Layer, SQL administration and official documentation, with credentials kept away from the agent**
 
-## Installation (30-second setup)
+  [![Node 20+](https://img.shields.io/badge/Node.js-20%2B-339933)](https://nodejs.org/)
+  [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Needs Node 20 or later. There are two ways in. Pick **one**: installing both leaves every skill twice.
+  [Why](#why) | [How it works](#how-it-works) | [Requirements](#requirements) | [Getting started](#getting-started) | [Skills](#skills) | [Subcommands](#subcommands) | [The .sbo-skills folder](#the-sbo-skills-folder) | [Troubleshooting](#troubleshooting)
+</div>
 
-| | Claude Code plugin | `npx skills` |
-|---|---|---|
-| Command names | with prefix: `/ngomez-skills:sbo-skills-service-layer` | no prefix: `/sbo-skills-service-layer` |
-| Updates | managed by Claude Code | when you run `npx skills update` |
-| Files | read-only, kept by Claude Code | copied into your repo, yours to edit |
-| Agents | Claude Code | Claude Code and others (only Claude Code is tested) |
+<br>
 
-The prefix `ngomez-skills:` exists only with the plugin: Claude Code adds it to the skills of a plugin. Skills copied by `npx skills` are plain project skills and have no prefix.
+A set of small, explicit skills for AI agents that need to read data from a real SAP Business One Service Layer, change it safely, and look up how the Service Layer and the Business One server behave.
 
-### 1a. As a Claude Code plugin (prefix `ngomez-skills:`)
+## Why
 
-Inside Claude Code, in your project:
+Working against a live ERP is hard. Pasting passwords into a chat, letting an agent guess entity names, or having it fire a `POST` at production on its own are all ways to have a very bad day. These skills fix the usual failure modes:
 
-```
-/plugin marketplace add https://github.com/ngomezcn/sbo-skills.git
-/plugin install ngomez-skills@sbo-skills
-```
+- **The agent never sees your credentials.** You type the URL, company, user and password into a local file yourself. The tool logs in on its own, so `Login` and `Logout` are not even requestable.
+- **The agent does not guess entities and fields.** It reads an object context (standard and `U_*` fields, types, valid values) and an entity index built from *your* environment.
+- **The agent does not change data without asking.** Every call that is not a read is a dry run: it shows the exact method, URL, headers and body, and only a second call with `--execute` sends it. On `prod`, writes also need `--allow-prod`.
+- **The agent does not answer from memory.** Questions about the Service Layer or the Administrator's Guide are answered from a reference distilled from the official documentation.
 
-Use the full URL. The short form `ngomezcn/sbo-skills` makes Claude Code clone over SSH, and it fails with `Host key verification failed` if you have no SSH key set up for GitHub.
+## How it works
 
-Check it: typing `/ngomez` must list `ngomez-skills:sbo-skills-admin-guide-sql`, `ngomez-skills:sbo-skills-service-layer`, `ngomez-skills:sbo-skills-service-layer-setup` and `ngomez-skills:sbo-skills-service-layer-add-environment`. If it does not, run `/reload-plugins` or start a new session.
+The skills are a **distillation of the official SAP Business One documentation** (the Service Layer guide v1.29, plus the Administrator's Guide for Microsoft SQL Server, 10.0 up to FP 2608), organised so an agent can reach the single page that answers a question instead of reading hundreds of pages. Where the documentation is silent, the skill says so instead of filling the gap.
 
-### 1b. With `npx skills` (no prefix)
+For live systems, a small Node.js tool (`use.mjs`) talks to the Service Layer. Records never enter the conversation: they are written to a local folder with one file per record and an `_index.json`, and the agent only receives the path and a summary.
+
+### Version gates
+
+The Service Layer reference describes **FP 2608**; the minimum supported version is **FP 2208**. The version you declare during setup decides which sections the agent may use:
+
+| Section | Available from |
+|---|---|
+| Everything else in the Service Layer reference | FP 2208 |
+| Webhooks (subscriptions, notifications, messenger, event catalog, configuration) | FP 2602 |
+| Webhook formulas (`FilterExpr`) | FP 2608 |
+
+The SQL administration guide covers one edition (10.0 up to FP 2608) and has no version gate. Which entities and fields exist is never taken from the reference: it comes from your server, through the object context.
+
+## Requirements
+
+- **Node.js 20 or later**.
+- A SAP Business One Service Layer reachable from your machine (for the Service Layer skills only; the SQL guide needs no system).
+
+## Getting started
+
+### 1. Install
 
 In the root of your project:
 
 ```bash
-npx skills@latest add ngomezcn/sbo-skills
+npx skills@latest add apogee11/sbo-skills
 ```
 
-Pick the agents and take **all four** skills (the last, `sbo-skills-admin-guide-sql`, is independent of Service Layer): `sbo-skills-service-layer` (the one you use day to day), `sbo-skills-service-layer-setup` and `sbo-skills-service-layer-add-environment` (and `sbo-skills-admin-guide-sql`). Each skill carries its own `scripts/` folder, so none depends on the others being there. Update later with `npx skills update`.
+Pick your agent and take the skills you need. Each skill carries its own `scripts/` folder, so none depends on the others being there. Update later with `npx skills update`.
 
-Check it: `.claude/skills/` must hold the four folders, and `.claude/skills/sbo-skills-service-layer/docs/reference/` must have the whole reference (about 170 files). If the installer printed an error, run the same command again and check that folder.
+### 2. Run the setup
 
-### 2. Run the Setup
+Ask your agent to set up Service Layer (skill `sbo-skills-service-layer-setup`). It is a conversation, one question at a time:
 
-Open Claude Code **at the root of your repo** (not inside `.claude`) and run `/sbo-skills-service-layer-setup`, with the prefix `/ngomez-skills:sbo-skills-service-layer-setup` if you installed the plugin, or say *"set up Service Layer"*. It is a conversation, one question at a time:
+1. The agent asks for the language (English or Spanish), the SAP Business One version, the OData version (`v1` is OData V3, `v2` is OData V4; `v2` is proposed from FP 2405) and which environments you want (`dev`, `uat`, `prod`; at least one).
+2. It creates `.sbo-skills/service-layer/` with the configuration and one `credentials.json` per environment, with example values, and adds `.sbo-skills/` to your `.gitignore`.
+3. **You** open each `credentials.json` and replace the example values with the Service Layer URL, company database, user and password. The agent never asks for these and never opens the file.
+4. The agent tests every login and builds an index of the entities each environment exposes.
 
-1. Claude asks for the language (English or Spanish), the SAP Business One version, the OData version (`v1` is OData V3, `v2` is OData V4; it proposes `v2` from FP 2405) and which environments you want (`dev`, `uat`, `prod`; at least one).
-2. Claude creates `.sbo-skills/service-layer/` with the configuration and one `credentials.json` per environment, with example values. It also adds `.sbo-skills/` to your `.gitignore`.
-3. **You** open each `credentials.json` in your editor and replace the example values with the Service Layer URL, the company database, your user and your password, then save. Tell Claude when you are done. Claude never asks for these and never opens the file.
-4. Claude tests every login and builds an index of the entities each environment exposes. If a login fails, it tells you the Service Layer error; fix the file and ask it to verify again.
+Run the setup again at any time to start from scratch, or use `sbo-skills-service-layer-add-environment` to add one more environment without losing the rest.
 
-Run the Setup again at any time to start from scratch. To add one more environment without losing the rest, run `/sbo-skills-service-layer-add-environment`.
+### 3. Use it
 
-### 3. Bam - you're ready to go.
-
-Just talk to Claude, or run `/sbo-skills-service-layer` (`/ngomez-skills:sbo-skills-service-layer` with the plugin) followed by your question. That one skill both answers questions from the reference and works against your system; you never choose between the two.
-
-## Why These Skills Exist
-
-I built these to fix the common failure modes of an agent talking to a live Service Layer.
-
-### #1: The Agent Sees My Credentials
-
-**The Problem**: To log in, the agent needs a URL, a company, a user and a password. The easy path is to paste them into the chat. From then on they live in the conversation, in logs, and in whatever the model provider keeps.
-
-**The Fix** is the **`sbo-skills-service-layer-setup` skill**: Claude asks only what is not secret (versions, environments, URL, company) and you type the user and the password yourself into a file in your repo. The skill's rules forbid Claude to ask for them, to read that file or to repeat them if you paste one by mistake. The tool logs in by itself, so `Login` and `Logout` are not even requestable.
-
-> [!NOTE]
-> The password stays in plain text in `.sbo-skills/service-layer/<env>/credentials.json`, ignored by git. Anyone who can read your repo folder can read it. Keeping it out of the conversation relies on the skill's rules: nothing technical stops Claude's tools from opening that file.
-
-### #2: The Agent Guesses Entities And Fields
-
-**The Problem**: The agent invents `U_` fields that do not exist, misnames a custom table, or builds a body that the Service Layer rejects. User fields differ between companies and between `dev` and `prod`, so no model knows them.
-
-**The Fix** is the **`sbo-skills-service-layer` skill** (its Uso part), which gives the agent two maps built from *your* environment:
-
-- **Object context**: for an entity, its standard and user fields (`U_*`), types, whether they can be empty, and the valid values. Claude reads it before building a body or a `$select`.
-- **Entity index**: which entities the environment exposes, standard and user-defined. Claude tries the name it knows first, and reads the index only when it is not sure or the Service Layer says the entity does not exist.
-
-Both refresh by themselves after a week. If you created a user table a minute ago, ask for `entities --refresh`.
-
-### #3: The Agent Changes Data Without Asking
-
-**The Problem**: Giving an agent write access to an ERP is only safe if you see what it is about to do, exactly.
-
-**The Fix** is a write flow with a **dry run by default**. Everything that is not a GET is a dry run until you approve it:
-
-1. Claude runs the call **without** `--execute`. Nothing is sent. It shows you the exact method, full URL, headers, body and environment.
-2. You approve in words, or ask for changes (and get a new dry run).
-3. Claude repeats the same call with `--execute` and reports the status.
-
-On `prod`, every write also needs `--allow-prod`, added only after you approve that production write explicitly. Claude never proposes to skip the approval.
-
-### #4: The Agent Doesn't Know How The Service Layer Behaves
-
-**The Problem**: Pagination, ETag and `If-Match`, `$batch` change sets, UDOs, webhooks: the answers are in a 600-page guide, and the model half-remembers a different version.
-
-**The Fix** is the **`sbo-skills-service-layer` skill** (its Documentación part): the Service Layer reference (guide v1.29), plus an OData protocol section and facts verified against a live Service Layer. It reads the B1 version you declared in the Setup and checks which sections exist in your version before answering.
-
-## Usage Examples
-
-### Reading data
+Just ask. For example:
 
 > *"How many business partners are there in dev?"*
 > *"Show me the first 5 open sales orders of customer C20000 in uat."*
-> *"Read item A1 and tell me which user fields it has."*
-
-Behind this, Claude runs:
-
-```
-use.mjs count BusinessPartners --entorno dev
-use.mjs page Orders --filter "CardCode eq 'C20000' and DocumentStatus eq 'bost_Open'" --select DocEntry,DocNum,DocTotal --top 5 --entorno uat
-use.mjs get Items "'A1'" --entorno dev
-use.mjs traverse Items --filter "Valid eq 'tYES'" --max-rows 500 --entorno dev
-```
-
-**Records never enter the conversation.** They are written to a **Volcado**: a local folder with one file per record and an `_index.json`. Claude gets only the path and a summary and reads the files it needs, so a big answer cannot overflow its context. With several environments configured, add `--entorno dev|uat|prod`.
-
-### Changing data
-
 > *"Close order 5 in dev."*
+> *"What does a 412 on PATCH mean and how do I use If-Match?"*
+
+Writes look like this:
 
 ```
 use.mjs request POST "Orders(5)/Close" --entorno dev             # dry run: shows the request, sends nothing
 use.mjs request POST "Orders(5)/Close" --entorno dev --execute   # after you approve
 ```
 
-More `request` examples:
+## Skills
 
-```
-# Update a field, replacing the lines of the document
-use.mjs request PATCH "Orders(5)" --header "B1S-ReplaceCollectionsOnPatch: true" --body-file patch.json --entorno dev
+| Skill | What it does | Needs setup |
+|---|---|---|
+| [`sbo-skills-service-layer`](./skills/sbo-skills-service-layer/SKILL.md) | The one you use day to day. Answers how the Service Layer behaves from the reference ([docs](./skills/sbo-skills-service-layer/docs/index.md)) and operates against a configured environment ([use.md](./skills/sbo-skills-service-layer/use.md)). | Yes |
+| [`sbo-skills-service-layer-setup`](./skills/sbo-skills-service-layer-setup/SKILL.md) | Configures the connection: language, SAP Business One version, OData version, environments, and a login test. | No |
+| [`sbo-skills-service-layer-add-environment`](./skills/sbo-skills-service-layer-add-environment/SKILL.md) | Adds `dev`, `uat` or `prod` to an existing setup. | Yes |
+| [`sbo-skills-admin-guide-sql`](./skills/sbo-skills-admin-guide-sql/SKILL.md) | Administrator's Guide, edition for Microsoft SQL Server: installing, upgrading, configuring services, databases, security, troubleshooting. Documentation only, connects to nothing ([docs](./skills/sbo-skills-admin-guide-sql/docs/index.md)). | No |
 
-# Create an entity from a UTF-8 JSON file (recommended on Windows)
-use.mjs request POST BusinessPartners --body-file bp.json --entorno dev
+## Subcommands
 
-# Run a stored SQL query: a POST that only reads is declared with --read and runs directly
-use.mjs request POST "SQLQueries('open_orders')/List" --read --entorno uat
-
-# Any header goes through
-use.mjs request GET "Items?\$top=3" --header "B1S-CaseInsensitive: true"
-```
-
-`<path>` is what follows the service root (`BusinessPartners('C1')`, `Orders(5)/Cancel`, `$batch`). Do not write `/b1s/v2`: the saved OData version is added. Quote the path in the shell. The tool sends exactly what Claude gives it, with no `If-Match`, ETag or `Prefer` of its own.
-
-### `$batch`
-
-> *"In one batch: read item i001, then create an order and update its comment, all or nothing."*
-
-Claude writes the batch as a JSON file; the tool builds the multipart body and parses the answer:
-
-```json
-{ "requests": [
-  { "method": "GET", "path": "Items('i001')", "contentId": "read" },
-  { "changeset": [
-    { "method": "POST", "path": "Orders", "contentId": "1", "body": { "CardCode": "C1", "DocumentLines": [] } },
-    { "method": "PATCH", "path": "$1", "contentId": "2", "body": { "Comments": "x" } }
-  ] }
-] }
-```
-
-```
-use.mjs request POST '$batch' --body-file batch.json --entorno dev             # dry run lists every sub-request
-use.mjs request POST '$batch' --body-file batch.json --entorno dev --execute
-```
-
-A `changeset` is atomic and holds no GET; `$1` refers to the request with `contentId` 1 of the same changeset. The outer HTTP status is 200 even when a sub-request fails: Claude reads `errores` and `subrespuestas`.
-
-### Files and images
-
-```
-use.mjs request POST Attachments2 --file report.pdf --file other.png --entorno dev
-use.mjs request PATCH "ItemImages('A1')" --file photo.jpg --entorno dev
-use.mjs request GET "Attachments2(3)/\$value?filename='line2.png'" --entorno dev
-```
-
-Files must be under 50 MB. Downloads are saved in the Volcado and Claude tells you where.
-
-> [!WARNING]
-> Attachment and image upload/download are covered by unit tests only. The test Service Layer had no usable attachment or picture folder, so they were not run end to end.
-
-### Asking how it works
-
-> *"How do I paginate a GET?"*
-> *"What does a 412 on PATCH mean and how do I use If-Match?"*
-> *"Can I roll back a $batch?"*
-> *"How do I create a webhook subscription?"*
-
-If you ask before running the Setup, the skill stops and asks you to run the Setup first: it will not answer from the reference without knowing your B1 version.
-
-## Reference
-
-### Skills
-
-- **[sbo-skills-service-layer-setup](./skills/sbo-skills-service-layer-setup/SKILL.md)**: Configure the connection to Service Layer: B1 version, OData version and `dev`, `uat` and `prod`, with a login test. A conversation; you type the user and the password into a file yourself and Claude never handles them.
-- **[sbo-skills-service-layer](./skills/sbo-skills-service-layer/SKILL.md)**: The skill you use. Answers how Service Layer behaves from the reference (guide v1.29, all B1 versions, [docs/](./skills/sbo-skills-service-layer/docs/index.md)) and operates against a configured environment ([use.md](./skills/sbo-skills-service-layer/use.md)): read entities, read the object context of an entity, find which entities exist, and make any other call with `request`, with the dry-run-first write flow. Needs the Setup.
-- **[sbo-skills-service-layer-add-environment](./skills/sbo-skills-service-layer-add-environment/SKILL.md)**: Add another environment (`dev`, `uat` or `prod`) to an existing Setup without losing what is configured.
-
-- **[sbo-skills-admin-guide-sql](./skills/sbo-skills-admin-guide-sql/SKILL.md)**: SAP Business One Administrator's Guide, edition for Microsoft SQL Server (10.0 up to FP 2608): installing, upgrading, configuring services, maintaining databases, security, troubleshooting and the appendix. Documentation only: no Setup, it does not connect to any system ([docs/](./skills/sbo-skills-admin-guide-sql/docs/index.md)).
-
-### Commands of the Uso
-
-Run as `node "${CLAUDE_SKILL_DIR}/scripts/use.mjs" <command> ...` from your repo root (the skill does it). Every answer is short JSON: `ok`, `status`, `resumen` and, on failure, `error`.
+These are the commands of `skills/sbo-skills-service-layer/scripts/use.mjs`, run from your project root (the skill does it for you). Every answer is short JSON with `ok`, `status`, `resumen` and, on failure, `error`. With several environments configured, add `--entorno dev|uat|prod`.
 
 | Command | Does |
 |---|---|
@@ -210,51 +104,60 @@ Run as `node "${CLAUDE_SKILL_DIR}/scripts/use.mjs" <command> ...` from your repo
 | `page <EntitySet> [--top N] [--skip N]` | One page (20 rows by default). |
 | `traverse <EntitySet> [--max-rows N]` | Follows `nextLink` up to the cap (1000 by default). |
 | `count <EntitySet>` | Only the number of rows. |
-| `context <EntitySet> [--refresh]` | The object context of an entity. |
-| `entities [--refresh]` | Where the entity index is. |
-| `request <METHOD> <path> [...]` | Any call: `--header`, `--body`, `--body-file`, `--file`, `--stream-file`, `--read`, `--execute`, `--allow-prod`. |
-| `clean <id or path>` | Deletes a Volcado. |
+| `context <EntitySet> [--refresh]` | The object context of an entity: standard and user fields, types, valid values. |
+| `entities [--refresh]` | Where the entity index is (standard and user-defined entities). |
+| `request <METHOD> <path> [...]` | Any call: `--header`, `--body`, `--body-file`, `--file`, `--stream-file`, `--read`, `--execute`, `--allow-prod`. Covers CRUD, actions, `$batch`, stored SQL queries (`SQLQueries`) and attachment or image upload and download. |
+| `clean <id or path>` | Deletes a dump folder. |
 
-`get`, `page` and `traverse` accept `--filter`, `--select`, `--orderby` and `--expand`, passed to the Service Layer as written.
+`get`, `page` and `traverse` accept `--filter`, `--select`, `--orderby` and `--expand`. Stored SQL queries are run through `request`, for example `request POST "SQLQueries('open_orders')/List" --read`.
 
-### Permissions (recommended)
+The setup tool (`sbo-skills-service-layer-setup/scripts/setup.mjs`) has its own flags:
 
-Reads are safe to allow so that Claude Code does not ask each time, for example in `.claude/settings.json`:
+| Flag | Does |
+|---|---|
+| `--init` | Creates the configuration (with `--b1`, `--odata`, `--language`, `--envs`). |
+| `--add-env <env>` | Adds one environment. |
+| `--verify` | Tests every login and builds the entity index. |
+| `--status` | Shows the configured versions and environments, never credentials. |
 
-```json
-{ "permissions": { "allow": [
-  "Bash(node *sbo-skills-service-layer/scripts/use.mjs get *)",
-  "Bash(node *sbo-skills-service-layer/scripts/use.mjs page *)",
-  "Bash(node *sbo-skills-service-layer/scripts/use.mjs traverse *)",
-  "Bash(node *sbo-skills-service-layer/scripts/use.mjs count *)",
-  "Bash(node *sbo-skills-service-layer/scripts/use.mjs request GET *)",
-  "Bash(node *sbo-skills-service-layer/scripts/use.mjs context *)",
-  "Bash(node *sbo-skills-service-layer/scripts/use.mjs clean *)",
-  "Bash(node *sbo-skills-service-layer-setup/scripts/setup.mjs --status)"
-] } }
-```
+> [!WARNING]
+> Attachment and image upload and download are covered by unit tests only; they were not run end to end against a live Service Layer.
 
-Do **not** allow `request` for other methods (nor `request POST ... --read`): the permission prompt they raise is the second guard of the write flow, and it cannot tell a dry run from `--execute`, so each of them is asked. Adjust the path pattern to where the skills are installed.
+## The .sbo-skills folder
 
-### Troubleshooting
+Setup creates `.sbo-skills/service-layer/` in your project and adds `.sbo-skills/` to `.gitignore`. It holds everything local to your systems:
+
+| Path | Contains | Used for |
+|---|---|---|
+| `config.md` | Language, SAP Business One version, OData version. No secrets. | Choosing which reference sections apply and which OData version the tool calls. |
+| `<env>/credentials.json` | Service Layer URL, company database, user and password, in plain text. | Logging in. Edited by you; the agent does not read it. |
+| `<env>/session.json` | The current Service Layer session. | Reusing the login between calls. |
+| `<env>/context/<Entity>.md` | Object context: fields, types, valid values. | Building correct bodies and `$select`. |
+| `<env>/entities-standard.md`, `entities-user.md` | Entities the environment exposes, standard and user-defined. | Checking entity names. |
+| `<env>/data/` | Dumps of read results: one file per record plus `_index.json`. | Keeping big answers out of the conversation. Removed by `clean`. |
+
+> [!NOTE]
+> The password stays in plain text in `credentials.json`, ignored by git. Anyone who can read your project folder can read it. Keeping it out of the conversation relies on the skill's rules: nothing technical stops an agent's tools from opening that file.
+
+## Troubleshooting
 
 | You see | Do |
 |---|---|
-| `SETUP_MISSING`, `ENVIRONMENT_NOT_CONFIGURED` | Run the Setup (again), and check that the example values of the environment's `credentials.json` were replaced with your own. |
-| `ENTITY_NOT_FOUND` | The name is wrong or the entity is not exposed. Claude reads the entity index and retries with the right name. |
+| `SETUP_MISSING`, `ENVIRONMENT_NOT_CONFIGURED` | Run the setup (again) and check that the example values in the environment's `credentials.json` were replaced. |
+| `ENTITY_NOT_FOUND` | The name is wrong or the entity is not exposed. Read the entity index and retry with the right name. |
 | `PROD_WRITE_NOT_ALLOWED` | A write on `prod` without `--allow-prod`. Approve the production write explicitly if you mean it. |
 | `HEADER_RESERVED` | `Cookie`, `Host` and `Content-Length` belong to the tool. |
-| `FILE_TOO_LARGE`, `FILE_FORBIDDEN` | File over 50 MB, or one of the Setup's own files. |
-| `Property 'X' of 'Y' is invalid` | The object context may be out of date; ask for `context <Entity> --refresh`. |
-| `/sbo-skills-service-layer` or `/ngomez-skills:...` is not listed | The skills are not loaded in this session. Plugin: `/reload-plugins` or a new session, and check `/plugin` shows `ngomez-skills` enabled. Open Claude Code at the root of the project, not inside `.claude`. |
-| `/sbo-skills-service-layer` has no `ngomez-skills:` prefix | You installed with `npx skills`. The prefix only exists with the plugin (1a); uninstall the copied folders first so you do not have both. |
-| `Host key verification failed` adding the marketplace | Use the full URL, `https://github.com/ngomezcn/sbo-skills.git`, not `ngomezcn/sbo-skills`. |
-| `Filename too long` or `ENOENT ... mkdir` while installing | Windows paths over 260 characters, or a one-off failure of the copy. Install from a project with a shorter path (`C:\work\project`), or enable long paths (`git config --global core.longpaths true` and Windows "Enable Win32 long paths"). With `npx skills`, run the command again and check that `.claude/skills/sbo-skills-service-layer/docs/reference/` is complete. |
-| Installed both ways | Every skill shows twice. Keep one: delete the `sbo-skills-*` folders in `.claude/skills/`, or run `/plugin uninstall ngomez-skills@sbo-skills`. |
+| `FILE_TOO_LARGE`, `FILE_FORBIDDEN` | File over 50 MB, or one of the setup's own files. |
+| `Property 'X' of 'Y' is invalid` | The object context may be out of date; run `context <Entity> --refresh`. |
+| `Filename too long` or `ENOENT ... mkdir` while installing | Windows paths over 260 characters. Install from a shorter path, or enable long paths (`git config --global core.longpaths true` and Windows "Enable Win32 long paths"), then run the install again. |
 | Any Service Layer error with a status | Reported literally: its code and message are the Service Layer's own. |
 
 ### Good to know
 
 - The certificate of the Service Layer is never validated (they are usually self-signed): work from a network you trust.
-- Local data lives in `.sbo-skills/service-layer/` of your repo: `config.md`, and per environment the credentials, the session, the object contexts, the entity index and the Volcados. Volcados are removed by `clean`; when the Volcados of an environment pass 50 MB the tool also deletes the oldest ones, never one under 1 hour old (past 1 GB of young ones it stops with an error).
-- `skills/` is generated from the factory repository; do not edit it here. Only this `README.md` and `.claude-plugin/` are written by hand.
+- When the dumps of an environment pass 50 MB the tool deletes the oldest ones, never one under 1 hour old.
+- `skills/` is generated from a separate source repository; do not edit it here. Only this `README.md` is written by hand.
+
+## License
+
+[MIT](LICENSE)

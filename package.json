@@ -2,5 +2,5 @@
   "name": "sbo-skills",
   "version": "0.0.1",
   "private": true,
-  "description": "Skills de SAP Business One para Claude Code y otros agentes."
+  "description": "Skills de SAP Business One para agentes de IA."
 }
